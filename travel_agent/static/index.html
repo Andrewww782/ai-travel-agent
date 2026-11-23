@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Travel Agent</title>
+<style>
+  :root { --ink: #16181d; --dim: #6a6f7a; --line: #d9dce3; --paper: #f7f6f2; --card: #fff; --accent: #1f4fd8; --warn: #9a5b00; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 system-ui, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper); }
+  header { padding: 14px 20px; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  h1 { font-size: 17px; margin: 0; }
+  header span { color: var(--dim); font-size: 13px; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; max-width: 1080px; margin: 0 auto; padding: 20px; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  #log { min-height: 300px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 85%; padding: 9px 12px; border-radius: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .user { align-self: flex-end; background: var(--ink); color: #fff; }
+  .assistant { align-self: flex-start; background: var(--card); border: 1px solid var(--line); }
+  .confirm { align-self: flex-start; border: 1px solid var(--warn); background: #fff8ea; padding: 10px 12px; border-radius: 10px; max-width: 85%; }
+  .confirm b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--warn); }
+  .confirm div { margin: 2px 0 8px; }
+  button { font: inherit; padding: 6px 12px; border-radius: 7px; border: 1px solid var(--ink); background: var(--ink); color: #fff; cursor: pointer; }
+  button.quiet { background: transparent; color: var(--ink); border-color: var(--line); }
+  button:disabled { opacity: .5; cursor: default; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  form { display: flex; gap: 8px; margin-top: 14px; }
+  input { flex: 1; font: inherit; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); min-width: 0; }
+  #status { color: var(--dim); font-size: 13px; min-height: 20px; margin-top: 8px; }
+  aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--dim); margin: 0 0 6px; }
+  aside section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 14px; }
+  aside ul { margin: 0; padding-left: 18px; }
+  aside li { margin-bottom: 4px; }
+  .empty { color: var(--dim); }
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; }
+  .hints { color: var(--dim); font-size: 13px; }
+  .hints button { font-size: 13px; padding: 3px 9px; margin: 3px 4px 0 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>AI Travel Agent</h1>
+  <span>A demo. Flights and travel rules are sample data, and a saved trip is a plan, not a booking.</span>
+</header>
+
+<main id="gate" hidden>
+  <div>
+    <p>This demo needs an access code.</p>
+    <form id="gate-form"><input id="code" type="password" aria-label="Access code" placeholder="Access code" autocomplete="off"><button>Enter</button></form>
+    <div id="gate-status" role="status"></div>
+  </div>
+</main>
+
+<main id="app" hidden>
+  <div>
+    <div id="log" aria-live="polite"></div>
+    <form id="chat">
+      <input id="message" aria-label="Message" placeholder="Ask about flights, visas or baggage" maxlength="1000" autocomplete="off">
+      <button id="send">Send</button>
+    </form>
+    <div id="status" role="status"></div>
+    <div class="hints" id="hints">Try:
+      <button class="quiet" type="button">Flights from Delhi to Dubai on 10 March 2027</button>
+      <button class="quiet" type="button">Do I need a visa for Singapore?</button>
+      <button class="quiet" type="button">Remember that I avoid red-eye flights</button>
+    </div>
+  </div>
+  <aside>
+    <section><h2>Saved preferences</h2><ul id="prefs"></ul></section>
+    <section><h2>Saved trips</h2><ul id="trips"></ul></section>
+    <div class="tools">
+      <button class="quiet" id="reset" type="button">Clear chat</button>
+      <button class="quiet" id="fresh" type="button" title="Start again as a different person, to see that nothing carries over">New visitor</button>
+    </div>
+  </aside>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let code = sessionStorage.getItem('code') || ''; // kept so "New visitor" works after a reload
+let busy = false;
+
+async function api(path, body) {
+  const res = await fetch(path, body === undefined ? {} : {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(typeof data.detail === 'string' ? data.detail : `Request failed (${res.status})`);
+  return data;
+}
+
+function el(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text; // textContent: model and tool text is never parsed as HTML
+  return node;
+}
+
+function list(target, items, empty) {
+  target.replaceChildren(...(items.length ? items.map((t) => el('li', '', t)) : [el('li', 'empty', empty)]));
+}
+
+function render(state) {
+  $('gate').hidden = true;
+  $('app').hidden = false;
+  const log = $('log');
+  log.replaceChildren(...state.messages.map((m) => el('div', `msg ${m.role}`, m.text)));
+  for (const p of state.pending) {
+    const card = el('div', 'confirm');
+    card.append(el('b', '', 'Waiting for your confirmation'), el('div', '', p.summary));
+    const yes = el('button', '', 'Confirm');
+    const no = el('button', 'quiet', 'Cancel');
+    no.style.marginLeft = '8px';
+    yes.onclick = () => act(() => api(`/api/pending/${p.id}`, { confirm: true }));
+    no.onclick = () => act(() => api(`/api/pending/${p.id}`, { confirm: false }));
+    card.append(yes, no);
+    log.append(card);
+  }
+  list($('prefs'), state.preferences, 'None yet');
+  list($('trips'), state.trips.map((t) => `${t.date}: ${t.airline} ${t.id}, ${t.origin} to ${t.destination}, ${t.depart}`), 'None yet');
+  $('hints').hidden = state.messages.length > 0;
+  log.lastElementChild?.scrollIntoView({ block: 'nearest' });
+}
+
+// Runs one request, shows its result or its error, and blocks a second request meanwhile.
+async function act(request, waiting = '') {
+  if (busy) return;
+  busy = true;
+  document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+  $('status').textContent = waiting;
+  try {
+    render(await request());
+    $('status').textContent = '';
+  } catch (err) {
+    $('status').textContent = err.message;
+  } finally {
+    busy = false;
+    document.querySelectorAll('button').forEach((b) => { b.disabled = false; });
+    $('message').focus();
+  }
+}
+
+function send(text) {
+  text = text.trim();
+  if (!text || busy) return;
+  $('message').value = '';
+  $('log').append(el('div', 'msg user', text));
+  $('hints').hidden = true;
+  act(() => api('/api/chat', { message: text }), 'Working…');
+}
+
+$('chat').onsubmit = (e) => { e.preventDefault(); send($('message').value); };
+$('hints').querySelectorAll('button').forEach((b) => { b.onclick = () => send(b.textContent); });
+$('reset').onclick = () => act(() => api('/api/reset', {}));
+$('fresh').onclick = () => act(() => api('/api/session', { code }));
+$('gate-form').onsubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const entered = $('code').value;
+    render(await api('/api/session', { code: entered }));
+    code = entered;
+    sessionStorage.setItem('code', code);
+  } catch (err) {
+    $('gate-status').textContent = err.message;
+  }
+};
+
+(async () => {
+  try {
+    const state = await api('/api/state');
+    if (state.signed_in) render(state);
+    else if (state.needs_code) $('gate').hidden = false;
+    else render(await api('/api/session', { code: '' }));
+  } catch (err) {
+    $('gate').hidden = false;
+    $('gate-status').textContent = err.message;
+  }
+})();
+</script>
+</body>
+</html>
