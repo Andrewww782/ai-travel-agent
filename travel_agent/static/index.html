@@ -8,117 +8,176 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@400;500;600&family=Encode+Sans+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* Airport wayfinding: cool terminal greys, signage yellow kept for the one thing that needs a decision. */
+  /* An airport on a clear day: sky blue, a departures board, signage yellow, airline colours. */
   :root {
-    --ink: #17202b; --muted: #5a6675; --paper: #eef2f6; --sheet: #fff; --line: #d3dae3;
-    --yellow: #ffcc00; --blue: #1f5fd6; --green: #0b7a4b;
+    --navy: #0b1b3a; --muted: #55627a; --page: #f1f6ff; --sheet: #fff; --line: #cfdcf2;
+    --sky: #1463ff; --sky-deep: #0a45d6; --sky-pale: #8fc4ff; --yellow: #ffcc00; --green: #0b8a52; --coral: #ff6a5c;
     --text: "Encode Sans", system-ui, "Segoe UI", sans-serif;
     --sign: "Encode Sans Condensed", "Arial Narrow", system-ui, sans-serif;
   }
   * { box-sizing: border-box; }
-  html { scroll-padding-bottom: 120px; }
-  body { margin: 0; font: 400 16px/1.55 var(--text); color: var(--ink); background: var(--paper); }
+  html { scroll-padding-bottom: 140px; }
+  body { margin: 0; font: 400 16px/1.55 var(--text); color: var(--navy); background: var(--page); overflow-x: hidden; }
   [hidden] { display: none !important; }
   h1, h2, p, ul, dl, dd { margin: 0; }
   ul { padding: 0; list-style: none; }
+  svg.plane { width: 22px; height: 22px; fill: currentColor; transform: rotate(90deg); flex: none; }
 
   button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
-  button:disabled { cursor: default; opacity: .55; }
-  :is(button, input):focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
-  .solid { background: var(--ink); color: #fff; font-weight: 600; padding: 11px 20px; border-radius: 8px; }
+  button:disabled { cursor: default; opacity: .6; }
+  :is(button, input):focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; box-shadow: 0 0 0 5px var(--navy); }
+  .solid { display: inline-flex; align-items: center; gap: 8px; background: var(--navy); color: #fff; font-weight: 600; padding: 11px 20px; border-radius: 10px; transition: transform .15s, background .15s; }
+  .solid:hover:not(:disabled) { transform: translateY(-2px); }
+  .solid:active:not(:disabled) { transform: translateY(0); }
   .plain { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
-  .plain:hover:not(:disabled) { color: var(--ink); }
+  .plain:hover:not(:disabled) { color: var(--navy); }
 
-  .bar { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 24px; flex-wrap: wrap; padding: 18px 32px; border-bottom: 1px solid var(--line); }
+  /* ---- header: a strip of sky a plane crosses once ---- */
+  .bar { position: relative; display: flex; justify-content: space-between; align-items: baseline; gap: 6px 24px; flex-wrap: wrap; padding: 16px 32px; color: #fff; background: linear-gradient(90deg, var(--sky-deep), var(--sky)); overflow: hidden; }
   .bar h1 { font: 600 21px/1.2 var(--sign); letter-spacing: .01em; }
-  .bar p { color: var(--muted); font-size: 14px; }
+  .bar p { font-size: 14px; opacity: .92; }
+  .flyby { position: absolute; left: 0; right: 0; bottom: 3px; height: 22px; pointer-events: none; }
+  .flyby svg { position: absolute; left: -30px; color: var(--yellow); animation: cross 2.8s .3s cubic-bezier(.45, 0, .2, 1) both; }
+  .flyby::before { content: ""; position: absolute; left: 0; right: 0; top: 10px; border-top: 2px dashed rgb(255 255 255 / .7); transform-origin: left; animation: trail 2.8s .3s cubic-bezier(.45, 0, .2, 1) both; }
+  @keyframes cross { to { left: calc(100% + 30px); } }
+  @keyframes trail { 0% { transform: scaleX(0); opacity: 1; } 80% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
 
-  .desk { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 56px; max-width: 1160px; margin: 0 auto; padding: 40px 32px 0; align-items: start; }
+  .desk { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 52px; max-width: 1180px; margin: 0 auto; padding: 32px 32px 0; align-items: start; }
 
-  /* ---- empty state ---- */
-  .welcome h2 { font: 700 clamp(52px, 9vw, 96px)/.95 var(--sign); letter-spacing: -.01em; }
-  .welcome p { max-width: 54ch; margin-top: 18px; color: var(--muted); }
-  .starts { margin-top: 28px; border-top: 1px solid var(--line); max-width: 620px; }
-  .starts button { display: block; width: 100%; text-align: left; padding: 14px 2px; border-bottom: 1px solid var(--line); font-weight: 500; }
-  .starts button:hover:not(:disabled) { background: var(--sheet); padding-left: 12px; }
-  .starts button { transition: padding-left .15s; }
+  /* ---- opening: sky, clouds, and a departures board ---- */
+  .sky { position: relative; overflow: hidden; border-radius: 22px; padding: 44px 40px 40px; color: #fff; background: linear-gradient(180deg, var(--sky-deep) 0%, var(--sky) 45%, var(--sky-pale) 100%); }
+  .sky h2 { position: relative; font: 700 clamp(56px, 9vw, 104px)/.92 var(--sign); letter-spacing: -.01em; animation: rise .7s cubic-bezier(.2, .8, .2, 1) both; }
+  .sky p { position: relative; max-width: 44ch; margin-top: 20px; font-size: 17px; animation: rise .7s .15s cubic-bezier(.2, .8, .2, 1) both; }
+  @keyframes rise { from { transform: translateY(26px); opacity: 0; } }
+  .cloud { position: absolute; height: 34px; border-radius: 99px; background: #fff; opacity: .9; animation: drift linear infinite alternate; }
+  .cloud::before, .cloud::after { content: ""; position: absolute; background: #fff; border-radius: 50%; }
+  .cloud::before { width: 46%; aspect-ratio: 1; left: 14%; bottom: 30%; }
+  .cloud::after { width: 34%; aspect-ratio: 1; right: 16%; bottom: 40%; }
+  .cloud.a { width: 130px; top: 40px; right: 7%; animation-duration: 38s; }
+  .cloud.b { width: 84px; height: 22px; top: 150px; right: 3%; opacity: .7; animation-duration: 52s; animation-direction: alternate-reverse; }
+  .cloud.c { width: 150px; height: 36px; bottom: 26px; right: 2%; opacity: .8; animation-duration: 46s; }
+  @keyframes drift { from { transform: translateX(-26px); } to { transform: translateX(26px); } }
+  .board { position: relative; display: flex; gap: 5px; margin-top: 26px; perspective: 500px; animation: rise .7s .08s cubic-bezier(.2, .8, .2, 1) both; }
+  .tile { position: relative; width: 44px; height: 58px; display: grid; place-items: center; border-radius: 6px; background: var(--navy); color: var(--yellow); font: 700 38px/1 var(--sign); box-shadow: 0 6px 14px rgb(11 27 58 / .35); }
+  .tile::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px solid rgb(0 0 0 / .45); }
+  .tile.flip { animation: flap .32s ease-in-out; }
+  @keyframes flap { 50% { transform: rotateX(-88deg); filter: brightness(.6); } }
+
+  .starts { display: grid; gap: 10px; margin-top: 18px; }
+  .starts button { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 14px 18px; border-radius: 14px; background: var(--sheet); font-weight: 500; border-left: 8px solid var(--tone); transition: transform .18s, box-shadow .18s; animation: rise .6s cubic-bezier(.2, .8, .2, 1) both; }
+  .starts li:nth-child(1) button { --tone: var(--sky); animation-delay: .25s; }
+  .starts li:nth-child(2) button { --tone: var(--coral); animation-delay: .33s; }
+  .starts li:nth-child(3) button { --tone: var(--green); animation-delay: .41s; }
+  .starts button:hover:not(:disabled) { transform: translateX(8px); box-shadow: -8px 0 0 var(--tone); }
 
   /* ---- conversation ---- */
   .log { display: flex; flex-direction: column; gap: 22px; padding-bottom: 28px; }
-  .said { align-self: flex-end; max-width: min(80%, 52ch); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 16px 16px 3px 16px; overflow-wrap: anywhere; }
+  .said { align-self: flex-end; max-width: min(80%, 52ch); background: var(--sky); color: #fff; padding: 10px 16px; border-radius: 18px 18px 4px 18px; overflow-wrap: anywhere; }
+  .said.new { animation: from-right .35s cubic-bezier(.2, .9, .3, 1.2) both; }
+  @keyframes from-right { from { transform: translateX(60px) scale(.9); opacity: 0; } }
   .reply { max-width: 66ch; overflow-wrap: anywhere; }
+  .reply.new > p { animation: rise .45s cubic-bezier(.2, .8, .2, 1) both; }
   .reply p + p, .reply p + ul, .reply ul + p { margin-top: 10px; }
   .reply strong { font: 600 1.06em var(--sign); letter-spacing: .01em; }
-  .reply .rows { border-top: 1px solid var(--line); }
-  .reply .rows li { padding: 9px 0; border-bottom: 1px solid var(--line); }
-  .noted { color: var(--muted); font-size: 14px; padding-left: 14px; border-left: 3px solid var(--line); }
-  .noted.done { border-left-color: var(--green); color: var(--ink); }
+  .reply .rows { display: grid; gap: 6px; perspective: 700px; }
+  .reply .rows li { display: flex; gap: 12px; align-items: baseline; padding: 10px 14px; border-radius: 10px; background: var(--sheet); transform-origin: top; }
+  .reply.new .rows li { animation: board-row .45s cubic-bezier(.2, .8, .3, 1) both; animation-delay: calc(var(--i) * 90ms); }
+  @keyframes board-row { from { transform: rotateX(-85deg); opacity: 0; } }
+  .fin { flex: none; align-self: center; width: 12px; height: 22px; border-radius: 3px 9px 3px 3px; background: var(--line); }
+  .noted { align-self: flex-start; font-size: 14px; padding: 6px 14px; border-radius: 99px; background: #e3e9f5; color: var(--muted); }
+  .noted.done { background: #d5f3e3; color: #06613a; font-weight: 500; }
+  .noted.new { animation: pop .4s cubic-bezier(.2, 1.5, .4, 1) both; }
+  @keyframes pop { from { transform: scale(.6); opacity: 0; } }
 
   /* ---- the ticket: a write waiting for the user ---- */
-  .ticket { display: grid; grid-template-columns: minmax(0, 1fr) auto; background: var(--yellow); border-radius: 14px; max-width: 640px; }
+  .ticket { display: grid; grid-template-columns: minmax(0, 1fr) auto; background: var(--yellow); border-radius: 16px; max-width: 640px; box-shadow: 0 14px 30px rgb(11 27 58 / .16); transition: opacity .3s, transform .3s; }
+  .ticket.new { animation: print .6s cubic-bezier(.2, .8, .2, 1) both; }
+  @keyframes print { from { clip-path: inset(0 0 100% 0); transform: translateY(-24px); } to { clip-path: inset(-40px); } }
   .ticket-main { padding: 20px 24px 22px; min-width: 0; }
   .ticket-ask { font-size: 14px; font-weight: 600; }
   .route { display: flex; align-items: center; gap: 14px; margin-top: 8px; font: 700 52px/1 var(--sign); }
-  .route i { flex: 1; min-width: 24px; border-top: 2px solid var(--ink); }
+  .route i { position: relative; flex: 1; min-width: 28px; border-top: 2px dashed var(--navy); }
+  .route i svg { position: absolute; top: -12px; left: 0; margin-left: -11px; animation: along 3.2s ease-in-out infinite; }
+  @keyframes along { 0% { left: 0; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
   .cities { display: flex; justify-content: space-between; font-size: 14px; margin-top: 4px; }
   .facts { display: flex; flex-wrap: wrap; gap: 6px 28px; margin-top: 16px; }
-  .facts dt { font-size: 12.5px; opacity: .75; }
+  .facts dt { font-size: 12.5px; opacity: .78; }
   .facts dd { font: 600 19px/1.2 var(--sign); }
   .ticket-note { font: 600 26px/1.2 var(--sign); margin-top: 8px; overflow-wrap: anywhere; }
-  .ticket-stub { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 20px 24px; border-left: 2px dashed rgb(23 32 43 / .45); }
-  .ticket-stub .plain { color: var(--ink); font-size: 14px; }
-  /* the two notches a tear-off stub has, cut in the page colour */
-  .ticket-stub::before, .ticket-stub::after { content: ""; position: absolute; left: -11px; width: 20px; height: 20px; border-radius: 50%; background: var(--paper); }
+  .ticket-stub { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 20px 24px; border-left: 2px dashed rgb(11 27 58 / .45); border-radius: 0 16px 16px 0; background: var(--yellow); transition: transform .45s cubic-bezier(.5, 0, .8, .4), opacity .45s; }
+  .ticket-stub .plain { color: var(--navy); font-size: 14px; }
+  .ticket-stub::before, .ticket-stub::after { content: ""; position: absolute; left: -11px; width: 20px; height: 20px; border-radius: 50%; background: var(--page); }
   .ticket-stub::before { top: -10px; }
   .ticket-stub::after { bottom: -10px; }
+  .ticket.torn .ticket-stub { transform: translate(26px, 46px) rotate(13deg); opacity: 0; }
+  .ticket.void { opacity: 0; transform: scale(.94); }
 
   /* ---- composer ---- */
-  .composer { position: sticky; bottom: 0; background: linear-gradient(transparent, var(--paper) 22px); padding: 26px 0 22px; }
+  .composer { position: sticky; bottom: 0; background: linear-gradient(transparent, var(--page) 22px); padding: 26px 0 20px; }
   .composer form { display: flex; gap: 10px; }
-  .composer input { flex: 1; min-width: 0; font: inherit; color: inherit; padding: 13px 16px; border: 1.5px solid var(--ink); border-radius: 8px; background: var(--sheet); }
+  .composer input { flex: 1; min-width: 0; font: inherit; color: inherit; padding: 13px 18px; border: 2px solid var(--sky); border-radius: 12px; background: var(--sheet); transition: box-shadow .15s; }
+  .composer input:focus { outline: none; box-shadow: 0 0 0 4px rgb(20 99 255 / .22); }
   .composer input::placeholder { color: var(--muted); }
-  .status { min-height: 22px; margin-top: 8px; font-size: 14px; color: var(--muted); }
-  .status.problem { color: var(--ink); font-weight: 600; }
+  .composer .solid { background: var(--sky); border-radius: 12px; }
+  .composer .solid:hover:not(:disabled) { background: var(--sky-deep); }
+  .composer .solid.go svg { animation: takeoff .5s ease-in; }
+  @keyframes takeoff { to { transform: rotate(60deg) translate(6px, -38px); opacity: 0; } }
+  .status { min-height: 26px; margin-top: 8px; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 12px; }
+  .status.problem { color: #b3261e; font-weight: 600; }
+  .airway { position: relative; flex: none; width: 120px; height: 22px; color: var(--sky); }
+  .airway::before { content: ""; position: absolute; left: 0; right: 0; top: 10px; border-top: 2px dotted var(--sky-pale); }
+  .airway svg { position: absolute; left: 0; animation: shuttle 1.5s ease-in-out infinite; }
+  @keyframes shuttle { 0% { left: 0; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { left: calc(100% - 22px); opacity: 0; } }
 
   /* ---- rail ---- */
-  .rail { position: sticky; top: 24px; display: grid; gap: 32px; padding-bottom: 32px; }
+  .rail { position: sticky; top: 24px; display: grid; gap: 30px; padding-bottom: 32px; }
   .rail h2 { font: 600 15px/1.3 var(--text); margin-bottom: 12px; }
   .rail .none { color: var(--muted); font-size: 14px; }
   .stubs { display: grid; gap: 10px; }
-  .stub { background: var(--sheet); border-radius: 10px; padding: 14px 16px; border-left: 6px solid var(--yellow); }
+  .stub { background: var(--sheet); border-radius: 12px; padding: 14px 16px; border-left: 8px solid var(--line); box-shadow: 0 4px 12px rgb(11 27 58 / .06); }
+  .stub.fresh { animation: land .55s cubic-bezier(.2, .9, .3, 1.15) both; }
+  @keyframes land { from { transform: translate(-90px, 40px) rotate(-6deg); opacity: 0; } }
   .stub .route { font-size: 30px; margin-top: 0; gap: 10px; }
   .stub .route i { border-top-width: 1.5px; }
   .stub-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-top: 6px; }
   .stub p { font-size: 14px; color: var(--muted); }
   .stamp { flex: none; padding: 1px 8px; border: 2px solid var(--green); border-radius: 6px; color: var(--green); font: 700 13px/1.4 var(--sign); transform: rotate(-8deg); }
-  .stub.fresh .stamp { animation: stamp .45s cubic-bezier(.2, 1.4, .4, 1) both; }
-  @keyframes stamp { from { transform: rotate(-8deg) scale(2.2); opacity: 0; } }
-  .tags { display: grid; gap: 8px; justify-items: start; }
-  .tags li:not(.none) { position: relative; background: var(--sheet); border-radius: 6px; padding: 7px 14px 7px 30px; font-size: 14.5px; }
-  .tags li:not(.none)::before { content: ""; position: absolute; left: 11px; top: 50%; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%; background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .stub.fresh .stamp { animation: stamp .45s .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+  @keyframes stamp { from { transform: rotate(-8deg) scale(2.4); opacity: 0; } }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tags li:not(.none) { position: relative; border-radius: 8px 14px 14px 8px; padding: 7px 14px 7px 30px; font-size: 14.5px; font-weight: 500; background: var(--tone, #9cc7ff); transform-origin: 14px 50%; transition: transform .2s; }
+  .tags li:not(.none):hover { transform: rotate(-3deg); }
+  .tags li:not(.none)::before { content: ""; position: absolute; left: 10px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; background: var(--page); }
+  .tags li.fresh { animation: swing .9s cubic-bezier(.3, 1.6, .5, 1) both; }
+  @keyframes swing { 0% { transform: rotate(-28deg) scale(.7); opacity: 0; } 55% { transform: rotate(7deg); opacity: 1; } 100% { transform: rotate(0); } }
   .rail-tools { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px; }
 
   /* ---- access code ---- */
-  .gate { max-width: 440px; margin: 12vh auto 0; padding: 0 24px; }
-  .gate h2 { font: 700 44px/1 var(--sign); }
+  .gate { max-width: 460px; margin: 10vh auto 0; padding: 0 24px; }
+  .gate h2 { font: 700 46px/1 var(--sign); }
   .gate p { color: var(--muted); margin-top: 12px; }
   .gate form { display: flex; gap: 10px; margin-top: 22px; }
-  .gate input { flex: 1; min-width: 0; font: inherit; padding: 12px 14px; border: 1.5px solid var(--ink); border-radius: 8px; background: var(--sheet); }
+  .gate input { flex: 1; min-width: 0; font: inherit; padding: 12px 14px; border: 2px solid var(--sky); border-radius: 12px; background: var(--sheet); }
 
   @media (max-width: 860px) {
     .bar { padding: 14px 18px; }
-    .desk { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 26px 18px 0; }
+    .desk { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 20px 18px 0; }
+    .sky { padding: 30px 22px 28px; border-radius: 18px; }
+    .cloud.b, .cloud.c { display: none; }
+    .cloud.a { width: 84px; height: 22px; top: 18px; right: 5%; }
+    .tile { width: 31px; height: 42px; font-size: 26px; border-radius: 5px; }
+    .board { gap: 4px; }
     .rail { position: static; order: 2; padding-top: 8px; }
     .ticket { grid-template-columns: 1fr; }
     .route { font-size: 44px; }
-    .ticket-stub { flex-direction: row; align-items: center; gap: 20px; border-left: 0; border-top: 2px dashed rgb(23 32 43 / .45); }
+    .ticket-stub { flex-direction: row; align-items: center; gap: 20px; border-left: 0; border-top: 2px dashed rgb(11 27 58 / .45); border-radius: 0 0 16px 16px; }
     .ticket-stub::before { top: -11px; left: -10px; }
     .ticket-stub::after { top: -11px; bottom: auto; left: auto; right: -10px; }
     .said { max-width: 88%; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .stub.fresh .stamp { animation: none; }
-    .starts button { transition: none; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .flyby, .airway svg, .route i svg { display: none; }
   }
 </style>
 </head>
@@ -126,6 +185,7 @@
 <header class="bar">
   <h1>AI Travel Agent</h1>
   <p>Sample flights and travel rules. A saved trip is a plan, not a booking.</p>
+  <div class="flyby" aria-hidden="true"><svg class="plane" viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></div>
 </header>
 
 <main class="gate" id="gate" hidden>
@@ -140,9 +200,13 @@
 
 <main class="desk" id="app" hidden>
   <div>
-    <section class="welcome" id="welcome">
-      <h2>Where to?</h2>
-      <p>Ask for flights between Delhi, Mumbai, Bengaluru, Goa, Dubai, Singapore, London and Bangkok, or about visas and baggage. Nothing is saved until you say so.</p>
+    <section id="welcome">
+      <div class="sky">
+        <span class="cloud a"></span><span class="cloud b"></span><span class="cloud c"></span>
+        <h2>Where to?</h2>
+        <div class="board" id="board" aria-hidden="true"></div>
+        <p>Ask for flights between Delhi, Mumbai, Bengaluru, Goa, Dubai, Singapore, London and Bangkok, or about visas and baggage. Nothing is saved until you say so.</p>
+      </div>
       <ul class="starts" id="starts">
         <li><button type="button">Flights from Delhi to Dubai on 10 March 2027</button></li>
         <li><button type="button">Do I need a visa for Singapore?</button></li>
@@ -153,7 +217,7 @@
     <div class="composer">
       <form id="chat">
         <input id="message" aria-label="Your message" placeholder="Ask about flights, visas or baggage" maxlength="1000" autocomplete="off">
-        <button class="solid" id="send">Send</button>
+        <button class="solid" id="send">Send <svg class="plane" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg></button>
       </form>
       <p class="status" id="status" role="status"></p>
     </div>
@@ -177,10 +241,18 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
+const PLANE = 'M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z';
+// One colour per airline, used as a tail fin on flight rows and the edge of saved trips.
+const LIVERY = { '6E': '#3b3fd8', AI: '#e5383b', EK: '#c99700', SQ: '#12326e', BA: '#2f7ad9', VS: '#c2187a', TG: '#7a3eb1' };
+const TAG_TONES = ['#ffe066', '#8fe3b8', '#9cc7ff', '#ffa79e', '#c9b3ff'];
+const CITIES = ['DUBAI', 'SINGAPORE', 'LONDON', 'BANGKOK', 'GOA', 'MUMBAI', 'DELHI', 'BENGALURU'];
+const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 let code = sessionStorage.getItem('code') || ''; // kept so "Start as a new visitor" works after a reload
 let busy = false;
 let airports = {};
-let tripCount = null; // null until the first render, so trips already saved are not stamped again
+// What the last render showed, so only things that are new get an entrance animation.
+let seen = { messages: 0, pending: new Set(), trips: null, prefs: null };
 
 async function api(path, body) {
   const res = await fetch(path, body === undefined ? {} : {
@@ -199,12 +271,27 @@ function el(tag, cls, text) {
   return node;
 }
 
+function plane() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('class', 'plane');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', PLANE);
+  svg.append(path);
+  return svg;
+}
+
 const day = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const fare = (inr) => `₹${Number(inr).toLocaleString('en-IN')}`;
+const livery = (flightId) => LIVERY[String(flightId).slice(0, 2)];
 
-function route(from, to) {
+function route(from, to, flying) {
   const row = el('div', 'route');
-  row.append(el('span', '', from), el('i'), el('span', '', to));
+  const line = el('i');
+  if (flying) line.append(plane());
+  row.append(el('span', '', from), line, el('span', '', to));
   return row;
 }
 
@@ -225,7 +312,14 @@ function replyNode(text) {
     const item = line.match(/^\s*(?:[-*•]|\d+[.)])\s+(.*)$/);
     if (item) {
       if (!list) box.append(list = el('ul', 'rows'));
-      list.append(inline(el('li'), item[1]));
+      const row = el('li');
+      row.style.setProperty('--i', list.children.length);
+      // A row that names a flight gets that airline's colour as a tail fin.
+      const flight = item[1].match(/\b(6E|AI|EK|SQ|BA|VS|TG)\d{2,4}\b/);
+      const fin = el('span', 'fin');
+      if (flight) fin.style.background = LIVERY[flight[1]];
+      row.append(fin, inline(el('span'), item[1]));
+      list.append(row);
     } else if (line.trim()) {
       list = null;
       box.append(inline(el('p'), line.trim()));
@@ -247,7 +341,7 @@ function ticketNode(p) {
   main.append(el('p', 'ticket-ask', 'Waiting for you to confirm'));
   const f = p.flight;
   if (p.tool === 'save_trip' && f) {
-    main.append(route(f.origin, f.destination));
+    main.append(route(f.origin, f.destination, true));
     const cities = el('div', 'cities');
     cities.append(el('span', '', airports[f.origin] || ''), el('span', '', airports[f.destination] || ''));
     const facts = el('dl', 'facts');
@@ -263,15 +357,21 @@ function ticketNode(p) {
   const stub = el('div', 'ticket-stub');
   const yes = el('button', 'solid', p.tool === 'save_trip' ? 'Save this trip' : 'Remember this');
   const no = el('button', 'plain', "Don't save");
-  yes.onclick = () => act(() => api(`/api/pending/${p.id}`, { confirm: true }));
-  no.onclick = () => act(() => api(`/api/pending/${p.id}`, { confirm: false }));
+  // The stub tears off (or the ticket fades) while the request is on its way; it comes back if the request fails.
+  const decide = (confirm, effect) => async () => {
+    ticket.classList.add(effect);
+    if (!(await act(() => api(`/api/pending/${p.id}`, { confirm })))) ticket.classList.remove(effect);
+  };
+  yes.onclick = decide(true, 'torn');
+  no.onclick = decide(false, 'void');
   stub.append(yes, no);
   ticket.append(main, stub);
   return ticket;
 }
 
-function tripNode(t, isNew) {
-  const stub = el('li', isNew ? 'stub fresh' : 'stub');
+function tripNode(t) {
+  const stub = el('li', 'stub');
+  if (livery(t.id)) stub.style.borderLeftColor = livery(t.id);
   const foot = el('div', 'stub-foot');
   foot.append(el('p', '', `${day(t.date)}, ${t.airline} ${t.id}, departs ${t.depart}`), el('span', 'stamp', 'Saved'));
   stub.append(route(t.origin, t.destination), foot);
@@ -283,32 +383,52 @@ function render(state) {
   $('gate').hidden = true;
   $('app').hidden = false;
   $('welcome').hidden = state.messages.length > 0;
-  $('log').replaceChildren(...state.messages.map(messageNode), ...state.pending.map(ticketNode));
 
-  const added = tripCount === null ? 0 : state.trips.length - tripCount;
-  tripCount = state.trips.length;
-  $('trips').replaceChildren(...(state.trips.length
-    ? state.trips.map((t, i) => tripNode(t, i >= state.trips.length - added))
-    : [el('li', 'none', 'No trips yet. Ask for flights, then ask to save one.')]));
-  $('prefs').replaceChildren(...(state.preferences.length
-    ? state.preferences.map((p) => el('li', '', p))
-    : [el('li', 'none', 'Nothing yet. Try “Remember that I avoid red-eye flights”.')]));
-  $('log').lastElementChild?.scrollIntoView({ block: 'nearest' });
+  const messages = state.messages.map(messageNode);
+  messages.slice(seen.messages).forEach((node) => node.classList.add('new'));
+  const tickets = state.pending.map((p) => {
+    const node = ticketNode(p);
+    if (!seen.pending.has(p.id)) node.classList.add('new');
+    return node;
+  });
+  $('log').replaceChildren(...messages, ...tickets);
+
+  const trips = state.trips.map(tripNode);
+  if (seen.trips !== null) trips.slice(seen.trips).forEach((node) => node.classList.add('fresh'));
+  $('trips').replaceChildren(...(trips.length ? trips : [el('li', 'none', 'No trips yet. Ask for flights, then ask to save one.')]));
+  const prefs = state.preferences.map((text, i) => {
+    const tag = el('li', seen.prefs !== null && i >= seen.prefs ? 'fresh' : '', text);
+    tag.style.setProperty('--tone', TAG_TONES[i % TAG_TONES.length]);
+    return tag;
+  });
+  $('prefs').replaceChildren(...(prefs.length ? prefs : [el('li', 'none', 'Nothing yet. Try “Remember that I avoid red-eye flights”.')]));
+
+  seen = { messages: state.messages.length, pending: new Set(state.pending.map((p) => p.id)), trips: state.trips.length, prefs: state.preferences.length };
+  $('log').lastElementChild?.scrollIntoView({ block: 'nearest', behavior: calm ? 'auto' : 'smooth' });
 }
 
 // Runs one request, shows its result or its error, and blocks a second request meanwhile.
+// Resolves true when the request worked.
 async function act(request, waiting = '') {
-  if (busy) return;
+  if (busy) return false;
   busy = true;
   document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
-  $('status').className = 'status';
-  $('status').textContent = waiting;
+  const status = $('status');
+  status.className = 'status';
+  status.replaceChildren();
+  if (waiting) {
+    const airway = el('span', 'airway');
+    airway.append(plane());
+    status.append(airway, waiting);
+  }
   try {
     render(await request());
-    $('status').textContent = '';
+    status.replaceChildren();
+    return true;
   } catch (err) {
-    $('status').className = 'status problem';
-    $('status').textContent = err.message;
+    status.className = 'status problem';
+    status.textContent = err.message;
+    return false;
   } finally {
     busy = false;
     document.querySelectorAll('button').forEach((b) => { b.disabled = false; });
@@ -321,14 +441,41 @@ function send(text) {
   if (!text || busy) return;
   $('message').value = '';
   $('welcome').hidden = true;
-  $('log').append(el('div', 'said', text));
+  $('log').append(el('div', 'said new', text));
+  seen.messages += 1; // already on screen, so the server's copy of it is not animated again
+  $('send').classList.remove('go');
+  void $('send').offsetWidth; // restart the take-off animation
+  $('send').classList.add('go');
   act(() => api('/api/chat', { message: text }), 'Looking that up…');
 }
+
+// ---- the departures board on the opening screen ----
+const tiles = Array.from({ length: 9 }, () => $('board').appendChild(el('span', 'tile', ' ')));
+function showCity(word) {
+  tiles.forEach((tile, i) => {
+    const letter = word[i] || ' ';
+    if (tile.textContent === letter) return;
+    if (calm) { tile.textContent = letter; return; }
+    setTimeout(() => {
+      tile.classList.remove('flip');
+      void tile.offsetWidth;
+      tile.classList.add('flip');
+      setTimeout(() => { tile.textContent = letter; }, 160); // swap the letter while the tile is edge-on
+    }, i * 55);
+  });
+}
+let cityIndex = 0;
+showCity(CITIES[0]);
+setInterval(() => {
+  if ($('welcome').hidden || $('app').hidden || document.hidden) return;
+  cityIndex = (cityIndex + 1) % CITIES.length;
+  showCity(CITIES[cityIndex]);
+}, calm ? 4500 : 2600);
 
 $('chat').onsubmit = (e) => { e.preventDefault(); send($('message').value); };
 $('starts').querySelectorAll('button').forEach((b) => { b.onclick = () => send(b.textContent); });
 $('reset').onclick = () => act(() => api('/api/reset', {}));
-$('fresh').onclick = () => { tripCount = null; act(() => api('/api/session', { code })); };
+$('fresh').onclick = () => { seen = { messages: 0, pending: new Set(), trips: null, prefs: null }; act(() => api('/api/session', { code })); };
 $('gate-form').onsubmit = async (e) => {
   e.preventDefault();
   try {
@@ -344,7 +491,7 @@ $('gate-form').onsubmit = async (e) => {
 (async () => {
   try {
     const state = await api('/api/state');
-    if (state.signed_in) render(state);
+    if (state.signed_in) { seen.messages = state.messages.length; render(state); }
     else if (state.needs_code) $('gate').hidden = false;
     else render(await api('/api/session', { code: '' }));
   } catch (err) {
