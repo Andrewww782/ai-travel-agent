@@ -141,13 +141,13 @@ The four failures, all real mistakes by the agent:
 
 ### After fixing what the first run found
 
-Three changes, then a second full run the same day on the same model: **44 of 45 passed (98%)**.
+Two changes, then a second full run the same day on the same model: **44 of 45 passed (98%)**.
 
 | Failure | Change | Result |
 |---|---|---|
 | Assumed a date when searching | One line in the system prompt: ask for the date, never assume today | Fixed |
 | Assumed a date when saving | The prompt line was not enough. Moving the rule into the `save_trip` tool description was | Fixed |
-| Retrieval miss | Return 5 passages, not 3, and tell the model to name the airline or country in its query | Fixed |
+| Retrieval miss | No change | Passed this time because the model wrote a more specific query. Not fixed: the search still returns only 3 passages |
 | Misapplied a preference | No change | Passed this time: run-to-run variation, not a fix |
 
 The one failure in the second run is `memory-across-sessions`. The reply did favour the nonstop
@@ -156,7 +156,7 @@ error. It is counted as a failure anyway.
 
 ### How far to trust these numbers
 
-- **Each case ran once per run.** One case flipped from fail to pass with no change behind it.
+- **Each case ran once per run.** Two cases flipped from fail to pass with no change behind them.
 - **The second number is tuned.** The fixes were written while looking at these same 45 cases, and
   there is no held-out set, so 98% overstates how the agent does on questions it has not seen.
 - **The judge is the same small model that wrote the replies.** Judged passes in the first run were
