@@ -19,6 +19,10 @@ AIRPORTS = {
 _BY_ID = {f["id"]: f for f in FLIGHTS}
 
 
+def flight(flight_id) -> dict | None:
+    return _BY_ID.get(str(flight_id or "").strip().upper())
+
+
 def _airport(code: str) -> str:
     code = code.strip().upper()
     if code not in AIRPORTS:

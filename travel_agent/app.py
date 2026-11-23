@@ -82,7 +82,11 @@ def create_app(db_path: str | None = None, llm=None) -> FastAPI:
         return {
             "signed_in": True,
             "messages": [dict(r) for r in q("SELECT role, text FROM messages WHERE user_id = ? ORDER BY id")],
-            "pending": [{"id": p["id"], "summary": p["summary"]} for p in agent.pending_for(conn, user_id)],
+            # tool, args and flight let the page draw the confirmation as a ticket; summary is the fallback
+            "pending": [
+                {**p, "flight": tools.flight(p["args"].get("flight_id"))} for p in agent.pending_for(conn, user_id)
+            ],
+            "airports": tools.AIRPORTS,
             "preferences": [r["text"] for r in q("SELECT text FROM preferences WHERE user_id = ? ORDER BY id")],
             "trips": tools.list_trips(conn, user_id),
         }

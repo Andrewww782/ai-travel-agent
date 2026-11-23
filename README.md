@@ -6,6 +6,8 @@ preferences, and saves trip plans, and it asks the user before it writes anythin
 It is a demo built to show how an agent is put together, not a product: the flights and travel
 rules are sample data, and a saved trip is a plan, not a booking.
 
+![The chat page: a flight search, a remembered preference, and a trip waiting for confirmation](docs/screenshot.png)
+
 ## What is in it
 
 - **A hand-written agent loop** (`travel_agent/agent.py`). No agent framework: call the model, run
